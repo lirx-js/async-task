@@ -1,0 +1,21 @@
+{
+  "name": "@lirx/async-task",
+  "version": "1.0.0",
+  "description": "Abortable Promises for everyone !",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lirx-js/async-task"
+  },
+  "keywords": [
+    "promise",
+    "async",
+    "cancellation",
+    "cancel",
+    "abortable",
+    "abort"
+  ],
+  "author": "Valentin Richard",
+  "license": "MIT",
+  "access": "public",
+  "dependencies": {}
+}
