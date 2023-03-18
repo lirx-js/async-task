@@ -238,7 +238,7 @@ static get never(): Abortable;
 ```
 
 Returns an `Abortable`, which is never aborted.
-Useful in some situation where you never want to cancel an `AsyncTask`.
+Useful in some situations where you never want to cancel an `AsyncTask`.
 
 
 #### static fromAbortSignal
@@ -377,11 +377,11 @@ const request = fetch(url, {
 
 ### AsyncTask
 
-The Promise object represents the eventual completion, failure, or cancellation of an asynchronous operation and its resulting value.
+The `AsyncTask` object represents the eventual completion, failure, or cancellation of an asynchronous operation and its resulting value.
 
 It's an alternative to a `Promise`, supporting *cancellation*.
 It has a similar constructor, similar methods, and similar behaviour.
-It simply extends the `Promise` with a native support for `cancellation`.
+It simply completes the `Promise` with a native support for `cancellation`.
 
 #### table of content:
 
@@ -467,7 +467,7 @@ success: (value: IAsyncTaskInput<GValue>) => void
 If the `value` parameter passed to the `success` function is:
 
 - another `AsyncTask` or `Promise` object: the newly constructed `AsyncTask`'s state will be "locked in"
-  to the value passed. When this last one *resolve*, the `AsyncTask` is resolved with the same state (a success or an error).
+  to the value passed. When this last one *resolves*, the `AsyncTask` is resolved with the same state (a success or an error).
 - another value: the newly constructed `AsyncTask` switches to a *success* state with this value. 
 
 ###### error
@@ -492,7 +492,7 @@ This parameter is useful to clean an async operation using for example its `onAb
 
 ##### example
 
-Creates an `AsyncTask` successful after a specific period of time:
+Creates an `AsyncTask` becoming successful after a specific period of time:
 
 ```ts
 function asyncTimeout(
@@ -1179,7 +1179,7 @@ Moreover, `factoriesAbortable` is aborted, meaning that other factories **MUST**
 If the provided iterable is empty, the `AsyncTask` never resolves.
 
 This is extremely similar to `Promise.race`, but works with factories instead.
-If one of the factories rejects, then the other factories are cancelled, optimizing resources.
+If one of the factories succeeds or rejects, then the other factories are cancelled, optimizing resources.
 
 
 ##### example
