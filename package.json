@@ -17,5 +17,6 @@
   "author": "Valentin Richard",
   "license": "MIT",
   "access": "public",
+  "sideEffects": false,
   "dependencies": {}
 }

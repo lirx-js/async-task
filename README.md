@@ -1,6 +1,6 @@
 
 
-<p style="text-align: center; font-size: 26px;">
+<p align="center">
   Abortable Promises for everyone !
 </p>
 

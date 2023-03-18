@@ -44,6 +44,7 @@
     "generate:index-files": "node tools/index/generate-index-files.js",
     "_________________MANAGE_PACKAGE_______________": "",
     "publish:package": "cd ../dist && yarn publish --access public",
+    "publish:package:dev": "cd ../dist && npm publish --registry http://localhost:4873/",
     "link:package": "cd ../dist && yarn link",
     "_________________OTHERS_________________": "",
     "clean:dist": "echo 'clean:dist' && find ../ -path '../dist/*' -delete",
