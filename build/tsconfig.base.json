@@ -15,7 +15,7 @@
     "pretty": true,
 
     "removeComments": true,
-    "preserveConstEnums": true,
+    "preserveConstEnums": false,
     "sourceMap": true,
     "strictFunctionTypes": true,
     "noImplicitAny": true,
@@ -24,7 +24,6 @@
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
     "noUnusedLocals": false,
-    "suppressImplicitAnyIndexErrors": true,
     "module": "esnext",
     "moduleResolution": "node",
     "stripInternal": false,
@@ -38,8 +37,5 @@
   "formatCodeOptions": {
     "indentSize": 2,
     "tabSize": 2
-  },
-  "bazelOptions": {
-    "suppressTsconfigOverrideWarnings": true
   }
 }

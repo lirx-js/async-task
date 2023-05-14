@@ -1,6 +1,6 @@
 const $path = require('path');
 const $fs = require('fs/promises');
-const $fsh = require('../../misc/fs-helpers.js');
+const $fsh = require('../../misc/fs-helpers.mjs');
 
 const ROOT_PATH = $path.resolve($path.join(__dirname, '../../../..'));
 const SRC_PATH = $path.join(ROOT_PATH, 'src');

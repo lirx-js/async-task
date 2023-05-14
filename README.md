@@ -402,7 +402,7 @@ It simply completes the `Promise` with a native support for `cancellation`.
   - [static void](#static-void)
   - [static all](#static-all)
   - [static race](#static-race)
-  - 
+  
 
 #### constructor
 
@@ -1149,11 +1149,12 @@ and `abortableA` is aborted, effectively cleaning the pending timeout.
 
 #### static race
 
+
 ```ts
 static race<GFactories extends IGenericAsyncTaskFactoriesList>(
   factories: GFactories,
   abortable: Abortable,
-): AsyncTask<IAsyncTaskRaceValuesListReturn<GFactories>>
+): AsyncTask<IAsyncTaskRaceValueReturn<GFactories>>
 ```
 
 ##### parameters
@@ -1198,6 +1199,10 @@ In this example, all the factories are called.
 The return of the first one finishes first with `undefined`, so `asyncTask` switches to a *success* state with `undefined` as value.
 `abortableB` is aborted, effectively cleaning the pending second timeout.
 
+
+#### static allSettled
+
+[//]: # (TODO)
 
 -------------------------------------
 

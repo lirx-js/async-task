@@ -34,7 +34,7 @@ dist/
 /target/
 
 # Package manager
-.npmrc
+#.yarnrc
 
 .yarn/*
 !.yarn/patches
