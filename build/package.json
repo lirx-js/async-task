@@ -1,6 +1,6 @@
 {
   "name": "ts-lib-seed",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Seed to build a library",
   "main": "index.js",
   "scripts": {
@@ -42,7 +42,7 @@
     "comment:index-files": "node tools/index/comment-index-files.mjs",
     "uncomment:index-files": "node tools/index/comment-index-files.mjs --uncomment",
     "generate:index-files": "node tools/index/generate-index-files.mjs",
-    "remove:index-files": "echo 'remove:index-files' && find ../ -path '../src/**/index.ts' -delete",
+    "remove:index-files": "echo 'remove:index-files' && find ../ -path '../src/**/index.ts.txt' -delete",
     "_________________MANAGE_PACKAGE_______________": "",
     "bump:publish:package:dev": "yarn run bump:package:version && yarn run publish:package:dev",
     "bump:package:version": "echo 'bump:package:version' && node tools/package/bump-package-version.mjs",
@@ -54,6 +54,7 @@
     "clean:dist": "echo 'clean:dist' && find ../ -path '../dist/*' -delete",
     "comment:build:package": "yarn run uncomment:index-files && yarn run build:package && yarn run comment:index-files",
     "build:dev": "yarn run comment:build:package && yarn run bump:publish:package:dev",
+    "build:prod": "yarn run comment:build:package && yarn run publish:package",
     "ncu": "npx npm-check-updates"
   },
   "repository": {
@@ -68,11 +69,11 @@
     "acorn": "^8.8.2",
     "acorn-walk": "^8.2.0",
     "astring": "^1.8.4",
-    "cssnano": "^6.0.0",
+    "cssnano": "^6.0.1",
     "html-minifier-terser": "^7.2.0",
-    "postcss": "^8.4.21",
-    "sass": "^1.62.0",
-    "tsc-watch": "^6.0.0",
+    "postcss": "^8.4.23",
+    "sass": "^1.62.1",
+    "tsc-watch": "^6.0.4",
     "tslib": "^2.5.0",
     "typescript": "^5.0.4"
   },
