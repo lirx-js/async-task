@@ -20,3 +20,7 @@ export function asyncFetchJSON<GData extends IAsyncTaskConstraint<GData>>(
       }
     });
 }
+
+export type IAsyncFetchJSONFunction = typeof asyncFetchJSON;
+
+
