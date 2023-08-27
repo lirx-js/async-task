@@ -1,2 +1,0 @@
-export * from './all/index';
-export * from './race/index';

@@ -1,6 +1,6 @@
 {
   "name": "@lirx/async-task",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Abortable Promises for everyone !",
   "repository": {
     "type": "git",
@@ -18,5 +18,10 @@
   "license": "MIT",
   "access": "public",
   "sideEffects": false,
-  "dependencies": {}
+  "devDependencies": {
+    "@types/jest": "^29.5.3"
+  },
+  "dependencies": {
+    "@lirx/unsubscribe": "latest"
+  }
 }

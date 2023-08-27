@@ -22,10 +22,10 @@ export function asyncTimeoutThrow<GValue extends IAsyncTaskConstraint<GValue> = 
     error: IAsyncTaskErrorFunction,
     abortable: Abortable,
   ): void => {
-    const timer = setTimeout(() => {
+    const timer: any = setTimeout((): void => {
       error(onTimeout());
     }, ms);
-    abortable.onAbort(() => {
+    abortable.onAbort((): void => {
       clearTimeout(timer);
     });
   }, abortable);

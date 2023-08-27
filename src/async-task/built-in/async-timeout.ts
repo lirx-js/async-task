@@ -12,8 +12,8 @@ export function asyncTimeout(
     error: IAsyncTaskErrorFunction,
     abortable: Abortable,
   ): void => {
-    const timer = setTimeout(success, ms);
-    abortable.onAbort(() => {
+    const timer: any = setTimeout(success, ms);
+    abortable.onAbort((): void => {
       clearTimeout(timer);
     });
   }, abortable);

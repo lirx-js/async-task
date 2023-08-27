@@ -1,20 +1,11 @@
-import { noop } from '../noop';
-import { SingleEventEmitter } from '../single-event-emitter.class';
-import { IDeriveAbortableResult } from './types/static-methods/derive/derive-abortable-result.type';
+import { noop } from '../helpers/noop.private';
+import { SingleEventEmitter } from '../helpers/single-event-emitter.class.private';
 import { IAbortFunction } from './types/init/abort-function.type';
 import { IAbortableInit } from './types/init/abortable-init.type';
 import { IAbortableUnsubscribe } from './types/methods/on-abort/abortable-unsubscribe.type';
 
-let STATIC_ABORTABLE_NEVER: Abortable;
-
 export class Abortable {
-
-  static get never(): Abortable {
-    if (STATIC_ABORTABLE_NEVER === void 0) {
-      STATIC_ABORTABLE_NEVER = new Abortable(noop);
-    }
-    return STATIC_ABORTABLE_NEVER;
-  }
+  static readonly never: Abortable = new Abortable(noop);
 
   static fromAbortSignal(
     signal: AbortSignal,
@@ -25,7 +16,7 @@ export class Abortable {
       if (signal.aborted) {
         abort(signal.reason);
       } else {
-        signal.addEventListener('abort', () => {
+        signal.addEventListener('abort', (): void => {
           abort(signal.reason);
         }, { once: true });
       }
@@ -52,40 +43,6 @@ export class Abortable {
         abort(new Error(`Timeout`));
       }, ms);
     });
-  }
-
-  static derive(
-    ...abortables: Abortable[]
-  ): IDeriveAbortableResult {
-    let abort!: IAbortFunction;
-
-    const abortable = new Abortable((
-      _abort: IAbortFunction,
-    ): void => {
-      abort = (
-        reason: any,
-      ): void => {
-        for (let i = 0, l = unsubscribeList.length; i < l; i++) {
-          unsubscribeList[i]();
-        }
-        _abort(reason);
-      };
-
-      const unsubscribeList: IAbortableUnsubscribe[] = abortables.map((abortable: Abortable): IAbortableUnsubscribe => {
-        return abortable.onAbort(abort);
-      });
-    });
-
-    return [
-      abort,
-      abortable,
-    ];
-  }
-
-  static merge(
-    ...abortables: Abortable[]
-  ): Abortable {
-    return this.derive(...abortables)[1];
   }
 
   readonly #abortEventEmitter: SingleEventEmitter<any>;
@@ -118,6 +75,12 @@ export class Abortable {
     return this.#abortEventEmitter.subscribe(onAbort);
   }
 
+  throwIfAborted(): void {
+    if (this.aborted) {
+      throw this.reason;
+    }
+  }
+
   toAbortSignal(): AbortSignal {
     const controller: AbortController = new AbortController();
     if (this.aborted) {
@@ -130,4 +93,3 @@ export class Abortable {
     return controller.signal;
   }
 }
-

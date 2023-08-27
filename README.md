@@ -52,7 +52,7 @@ When chaining Promises, the lack of a simple cancellation becomes frustrating, o
 In the previous example, if the signal is aborted during the fetch, then the promise is cancelled as expected (rejected with an error),
 however, if this happens during the conversion to JSON, then it is resolved as usual **which is an unwanted behaviour**.
 
-To solve this problem, we propose a new PromiseLike class called `AsyncTask`, which natively support cancellation.
+To solve this problem, we propose a new PromiseLike class called `AsyncTask`, which natively supports cancellation.
 
 ## 🔧 Example
 
@@ -155,7 +155,7 @@ Creates an `Abortable` aborted after 1000ms:
 
 ```ts
 const abortable = new Abortable((abort: IAbortFunction): void => {
-  setTimeout(() => abort(new Error('Timeou'), 1000));
+  setTimeout(() => abort(new Error('Timeout'), 1000));
 });
 ```
 
@@ -387,6 +387,7 @@ It simply completes the `Promise` with a native support for `cancellation`.
 
 - [constructor](#constructor)
 - methods:
+  - [settled](#settled)
   - [then](#then)
   - [successful](#successful)
   - [errored](#errored)
@@ -449,7 +450,7 @@ Any errors thrown in this function will cause the `AsyncTask` to switch in an *e
 When called via `new`, the `AsyncTask` constructor returns an asyncTask object.
 The asyncTask object will become *resolving* when either of the functions `success` or `error` are invoked; or when the 
 provided `Abortable` is *aborted*.
-Note that if you call `success` or `error` and pass another `AsyncTask`or `Promise` object as an argument,
+Note that if you call `success` or `error` and pass another `AsyncTask` or `Promise` object as an argument,
 it can be said to be *resolving*, but still not *resolved*.
 
 ##### description
@@ -511,6 +512,106 @@ function asyncTimeout(
     });
   }, abortable);
 }
+```
+
+#### settled
+
+This is the main method to handle the *resolved* state of an `AsyncTask`.
+
+It immediately returns an equivalent `AsyncTask` object, allowing you to chain calls to other asyncTask methods.
+
+```ts
+settled<GNewValue extends IAsyncTaskConstraint<GNewValue>>(
+  onSettled: IAsyncTaskOnSettledFunction<GValue, GNewValue>,
+  abortable: Abortable = this.#abortable,
+): AsyncTask<GNewValue>
+```
+
+```ts
+interface IAsyncTaskOnSettledFunction<GValue extends IAsyncTaskConstraint<GValue>, GNewValue extends IAsyncTaskConstraint<GNewValue>> {
+  (
+    state: IAsyncTaskState<GValue>,
+    abortable: Abortable,
+  ): IAsyncTaskInput<GNewValue>;
+}
+
+interface IAsyncTaskSuccessState<GValue extends IAsyncTaskConstraint<GValue>> {
+  readonly state: 'success';
+  readonly value: GValue;
+}
+
+interface IAsyncTaskFinalErrorState {
+  readonly state: 'error';
+  readonly error: any;
+}
+
+interface IAsyncTaskFinalAbortState {
+  readonly state: 'abort';
+  readonly reason: any;
+}
+
+type IAsyncTaskState<GValue extends IAsyncTaskConstraint<GValue>> =
+  | IAsyncTaskSuccessState<GValue>
+  | IAsyncTaskFinalErrorState
+  | IAsyncTaskFinalAbortState
+  ;
+```
+
+##### parameters
+
+- `onSettled`: a function **asynchronously** called when the `AsyncTask` is *resolved*. It happens when the `AsyncTask` is fully resolved with a *success*, *error*, or *abort* state.
+  This function receives two parameters, the state of the `AsyncTask` (including its value or reason) and the `Abortable` provided as input.
+  This function may return a value, an `AsyncTask` or a `Promise`.
+- `abortable`: this optional parameters gives us the opportunity to create a new `AsyncTask` with a different `Abortable`.
+  If omitted, the current `AsyncTask`'s `Abortable` is used instead.
+  If the current `AsyncTask` switches to an *aborted* state, this parameter gives us the opportunity to create a new `AsyncTask` with a different `Abortable`.
+  If omitted, the current `AsyncTask`'s `Abortable` is used instead.
+
+##### return value
+
+Returns a new `AsyncTask` immediately.
+
+This new `AsyncTask` is always pending when returned, regardless of the current `AsyncTask`'s status.
+
+`onSettled` will be executed to handle the current `AsyncTask`'s state.
+The call always happens asynchronously, even when the current `AsyncTask` is already resolved.
+The behavior of the returned `AsyncTask` (call it `asyncTask`) depends on the handler's execution result, following a specific set of rules.
+If the handler function:
+
+- returns a value: `asyncTask` switches to a *success* state with the returned value as its value.
+- doesn't return anything: `asyncTask` switches to a *success* state with `undefined` as its value.
+- throws an error: `asyncTask` switches to an *error* state with the thrown error as its value.
+- returns an already *successful* `AsyncTask`: `asyncTask` switches to a *success* state with that `AsyncTask`'s value as its value.
+- returns an already *errored* `AsyncTask`: `asyncTask` switches to an *error* state with that `AsyncTask`'s value as its value.
+- returns another *pending* `AsyncTask`: `asyncTask` is pending and switches to a *success/error* state with that `AsyncTask`'s value as its value immediately after that `AsyncTask` becomes *success/error*.
+
+If an `AsyncTask` is returned, it **MUST** have the same abortable as the one provided as second argument (`abortable`).
+
+##### example
+
+```ts
+const abortable = Abortable.never;
+
+new AsyncTask<number>((success) => {
+  success(Math.random() * 1000);
+}, abortable)
+  .settled(
+    (state: IAsyncTaskState<number>, abortable: Abortable): AsynTask<void> => {
+      switch (state.state) {
+        case 'success':
+          return asyncTimeout(value, abortable);
+        case 'error':
+          console.error(error);
+          throw error;
+        case 'aborted':
+          console.log('aborted');
+      }
+      
+    },
+    (error: unknown, abortable: Abortable): never => {
+     
+    },
+  );
 ```
 
 #### then
@@ -767,27 +868,6 @@ type IAsyncTaskOnFinallyFunction<GValue extends IAsyncTaskConstraint<GValue>> = 
   state: IAsyncTaskState<GValue>,
   abortable: Abortable,
 ) => IAsyncTaskInput<void>
-
-interface IAsyncTaskSuccessState<GValue extends IAsyncTaskConstraint<GValue>> {
-  readonly state: 'success';
-  readonly value: GValue;
-}
-
-interface IAsyncTaskFinalErrorState {
-  readonly state: 'error';
-  readonly error: any;
-}
-
-interface IAsyncTaskFinalAbortState {
-  readonly state: 'abort';
-  readonly reason: any;
-}
-
-type IAsyncTaskState<GValue extends IAsyncTaskConstraint<GValue>> =
-  | IAsyncTaskSuccessState<GValue>
-  | IAsyncTaskFinalErrorState
-  | IAsyncTaskFinalAbortState
-  ;
 ```
 
 

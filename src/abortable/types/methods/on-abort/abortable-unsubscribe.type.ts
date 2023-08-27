@@ -1,6 +1,6 @@
+import { IUnsubscribe } from '@lirx/unsubscribe';
+
 /**
  * Cancels the subscription of the "onAbort" method.
  */
-export interface IAbortableUnsubscribe {
-  (): void;
-}
+export type IAbortableUnsubscribe = IUnsubscribe;

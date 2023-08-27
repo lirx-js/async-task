@@ -1,22 +1,21 @@
 import { Abortable } from '../../../abortable/abortable.class';
 import { AsyncTask } from '../../async-task.class';
-import { IAsyncTaskConstraint } from '../../types/async-task-constraint.type';
 import { IAsyncFetchRequestInit } from './async-fetch';
 import { asyncFetchBody } from './async-fetch-body';
 
-export function asyncFetchJSON<GData extends IAsyncTaskConstraint<GData>>(
+export function asyncFetchArrayBuffer(
   input: RequestInfo | URL,
   init: IAsyncFetchRequestInit,
   abortable: Abortable,
-): AsyncTask<GData> {
+): AsyncTask<ArrayBuffer> {
   return asyncFetchBody(
     input,
     init,
-    (response: Response) => response.json(),
+    (response: Response) => response.arrayBuffer(),
     abortable,
   );
 }
 
-export type IAsyncFetchJSONFunction = typeof asyncFetchJSON;
+export type IAsyncFetchArrayBufferFunction = typeof asyncFetchArrayBuffer;
 
 

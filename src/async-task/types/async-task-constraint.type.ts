@@ -13,16 +13,31 @@ export type IAsyncTaskConstraint<GValue, GKind = any> = (
         : (
           Promise<any> extends GValue
             ? never
-            : (
-              // GKind extends GValue
-              [GValue] extends [GKind]
-                ? any
-                : never
-              )
+            : GKind
           )
       )
   );
 
+export type IEnsureAsyncTaskConstrained<GValue, GKind = any> =
+  GValue extends IAsyncTaskConstraint<GValue, GKind>
+    ? GValue
+    : never;
+
+// function abc<GValue extends IAsyncTaskConstraint<GValue, number>>(): any {
+//
+// }
+//
+// abc<void>();
+// abc<undefined>();
+// abc<null>();
+// abc<symbol>();
+// abc<boolean>();
+// abc<number>();
+// abc<string>();
+// abc<object>();
+// abc<any>();
+// abc<never>();
+// abc<unknown>();
 
 // export type IAsyncTaskConstraint<GValue, GKind = any> = (
 //   [GValue] extends [AsyncTask<unknown>]
@@ -37,7 +52,6 @@ export type IAsyncTaskConstraint<GValue, GKind = any> = (
 //           )
 //       )
 //   );
-
 
 // export type IAsyncTaskConstraint<GValue> = (
 //   [GValue] extends [null | undefined | void]
@@ -107,12 +121,8 @@ export type IAsyncTaskConstraint<GValue, GKind = any> = (
 //       )
 //   );
 
-
-
-
 // export type IAsyncTaskConstraint<GValue, GKind = any> = [GValue] extends [Promise<any>] ? never : string;
 // export type IAsyncTaskConstraint<GValue, GKind = any> = Promise<any> extends GValue ? never : string;
-
 
 // type IThingValue =
 //   | null
@@ -122,7 +132,6 @@ export type IAsyncTaskConstraint<GValue, GKind = any> = (
 //   | object
 //   | IThingValue[]
 //   ;
-
 
 // type A = IAsyncTaskConstraint<unknown>;
 // type B = IAsyncTaskConstraint<string>;
