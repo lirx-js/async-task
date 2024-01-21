@@ -1,7 +1,7 @@
 import { Abortable } from '../abortable.class';
 
 export interface IAbortableOptions {
-  abortable: Abortable;
+  readonly abortable: Abortable;
 }
 
 export type IOptionalAbortableOptions = Partial<IAbortableOptions>;

@@ -1,3 +1,4 @@
+import { TimeoutError } from '../errors/timeout-error.class';
 import { noop } from '../helpers/noop.private';
 import { SingleEventEmitter } from '../helpers/single-event-emitter.class.private';
 import { IAbortFunction } from './types/init/abort-function.type';
@@ -39,8 +40,8 @@ export class Abortable {
     return new Abortable((
       abort: IAbortFunction,
     ): void => {
-      setTimeout(() => {
-        abort(new Error(`Timeout`));
+      setTimeout((): void => {
+        abort(new TimeoutError());
       }, ms);
     });
   }

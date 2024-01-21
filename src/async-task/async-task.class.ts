@@ -1,4 +1,6 @@
 import { Abortable } from '../abortable/abortable.class';
+import { AbortError } from '../errors/abort-error.class';
+import { isPromise } from '../helpers/is-promise.private';
 import { noop } from '../helpers/noop.private';
 import { SingleEventEmitter, ISingleEventEmitterUnsubscribe } from '../helpers/single-event-emitter.class.private';
 import { IAsyncTaskConstraint } from './types/async-task-constraint.type';
@@ -149,34 +151,32 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
     };
   }
 
-
-  static abc(): any {
-    const toUnsubscribe: IUnsubscribeSet = unsubscribeSet();
-
-    const clean = (): void => {
-      cleanUnsubscribeSet(toUnsubscribe);
-    };
-
-    const sharedAbortableController: AbortableController = new AbortableController([abortable]);
-    const sharedAbortable: Abortable = sharedAbortableController.abortable;
-
-    const success = (
-      value: GValues,
-    ): void => {
-      sharedAbortableController.abort(ASYNC_TASK_SUCCESS);
-      _success(value);
-    };
-
-    const error = (
-      error: any,
-    ): void => {
-      sharedAbortableController.abort(error);
-      _error(error);
-    };
-
-    toUnsubscribe.add(sharedAbortable.onAbort(clean));
-  }
-
+  // static abc(): any {
+  //   const toUnsubscribe: IUnsubscribeSet = unsubscribeSet();
+  //
+  //   const clean = (): void => {
+  //     cleanUnsubscribeSet(toUnsubscribe);
+  //   };
+  //
+  //   const sharedAbortableController: AbortableController = new AbortableController([abortable]);
+  //   const sharedAbortable: Abortable = sharedAbortableController.abortable;
+  //
+  //   const success = (
+  //     value: GValues,
+  //   ): void => {
+  //     sharedAbortableController.abort(ASYNC_TASK_SUCCESS);
+  //     _success(value);
+  //   };
+  //
+  //   const error = (
+  //     error: any,
+  //   ): void => {
+  //     sharedAbortableController.abort(error);
+  //     _error(error);
+  //   };
+  //
+  //   toUnsubscribe.add(sharedAbortable.onAbort(clean));
+  // }
 
   /**
    * Returns an AsyncTask resolved with all the values returned by the factories (as an array of values).
@@ -581,7 +581,7 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
             } else {
               resolvedWithError(new Error(`AsyncTask must have the same Abortable than the one provided.`));
             }
-          } else if (input instanceof Promise) {
+          } else if (isPromise(input)) {
             input.then(
               (
                 value: GValue,
@@ -777,7 +777,7 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
         } else if (state.state === 'error') {
           reject(state.error);
         } else if (state.state === 'abort') {
-          reject(new Error(`Aborted`, { cause: state.reason }));
+          reject(new AbortError(`Aborted`, { cause: state.reason }));
         }
       });
     });

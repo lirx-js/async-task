@@ -1,4 +1,5 @@
 import { Abortable } from '../../abortable/abortable.class';
+import { TimeoutError } from '../../errors/timeout-error.class';
 import { IAsyncTaskErrorFunction } from '../types/init/async-task-error-function.type';
 import { IAsyncTaskSuccessFunction } from '../types/init/async-task-success-function.type';
 import { IAsyncTaskConstraint } from '../types/async-task-constraint.type';
@@ -9,7 +10,7 @@ export interface IAsyncTimeoutThrowErrorFactory {
 }
 
 export const DEFAULT_ASYNC_TIMEOUT_THROW_ERROR_FACTORY = () => {
-  return new Error(`Timeout`);
+  return new TimeoutError();
 };
 
 export function asyncTimeoutThrow<GValue extends IAsyncTaskConstraint<GValue> = any>(
