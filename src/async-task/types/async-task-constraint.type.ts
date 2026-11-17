@@ -1,27 +1,21 @@
 import { AsyncTask } from '../async-task.class';
 
+// export type IfAny<T, Y, N> = 0 extends (1 & T) ? Y : N;
+
+export type IfAny<T, Y, N> = unknown extends T ? ([keyof T] extends [never] ? N : Y) : N;
+
 /**
  * A contraint on the value of an AsyncTask:
  * It cannot be another AsyncTask, and it cannot be a Promise.
  */
-export type IAsyncTaskConstraint<GValue, GKind = any> = (
-  0 extends (1 & GValue)
-    ? any
-    : (
-      AsyncTask<any> extends GValue
-        ? never
-        : (
-          Promise<any> extends GValue
-            ? never
-            : GKind
-          )
-      )
-  );
+export type IAsyncTaskConstraint<GValue, GKind = any> = IfAny<
+  GValue,
+  any,
+  AsyncTask<any> extends GValue ? never : Promise<any> extends GValue ? never : GKind
+>;
 
 export type IEnsureAsyncTaskConstrained<GValue, GKind = any> =
-  GValue extends IAsyncTaskConstraint<GValue, GKind>
-    ? GValue
-    : never;
+  GValue extends IAsyncTaskConstraint<GValue, GKind> ? GValue : never;
 
 // function abc<GValue extends IAsyncTaskConstraint<GValue, number>>(): any {
 //
@@ -143,4 +137,3 @@ export type IEnsureAsyncTaskConstrained<GValue, GKind = any> =
 // type G = IAsyncTaskConstraint<string, number | boolean>;
 // type H = IAsyncTaskConstraint<void>;
 // type I = IAsyncTaskConstraint<string[], IThingValue>;
-

@@ -8,14 +8,7 @@ export function asyncFetchText(
   init: IAsyncFetchRequestInit,
   abortable: Abortable,
 ): AsyncTask<string> {
-  return asyncFetchBody(
-    input,
-    init,
-    (response: Response) => response.text(),
-    abortable,
-  );
+  return asyncFetchBody(input, init, (response: Response) => response.text(), abortable);
 }
 
 export type IAsyncFetchTextFunction = typeof asyncFetchText;
-
-

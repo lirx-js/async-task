@@ -302,57 +302,16 @@ fetch(url, {
 ```
 
 
-#### static derive
+#### static any
 
 ```ts
-static derive(...abortables: Abortable[]): IDeriveAbortableResult;
-```
-
-```ts
-type IDeriveAbortableResult = [
-  abort: IAbortFunction,
-  aborbale: Abortable,
-];
+static any(abortables: Iterable<Abortable>): Abortable
 ```
 
 ##### parameters
 
-- `...abortables`: a list of `Abortable` to build the returned `Abortable` from.
+- `abortables`: a list of `Abortable` to build the returned `Abortable` from.
 If any of these `Abortable` is aborted, the returned `Abortable` is aborted too.
-
-##### return value
-
-A tuple composed of :
-
-- `abort`: which is a function having the same type and properties than the one received as parameter from the `init` function provided in the constructor.
-It may be used to abort the returned `Abortable`
-- `aborbale`: an `Abortable` aborted if any of the provided `Abortable` is aborted, or if `abort` is called.
-
-##### example
-
-A simple example showing a fetch operation that will be aborted immediately:
-
-```ts
-const [abort, abortable] = Abortable.derive();
-
-const request = fetch(url, {
-  signal: abortable.toAbortSignal(),
-});
-
-abort();
-```
-
-
-#### static merge
-
-```ts
-static merge(...abortables: Abortable[]): Abortable;
-```
-
-##### parameters
-
-- `...abortables`: a list of `Abortable` to build the returned `Abortable` from.
-  If any of these `Abortable` is aborted, the returned `Abortable` is aborted too.
 
 ##### return value
 
@@ -360,16 +319,14 @@ An `Abortable` aborted if any of the provided `Abortable` is aborted.
 
 ##### example
 
-A simple example showing a fetch operation that will be aborted after 1000ms:
+A simple example showing a fetch operation that will be aborted immediately:
 
 ```ts
-const abortableA = Abortable.timeout(5000);
-const abortableB = Abortable.timeout(1000);
-const abortable = Abortable.merge(abortableA, abortableB);
-
-const request = fetch(url, {
-  signal: abortable.toAbortSignal(),
-});
+function query(url: string, abortable: Abortable) {
+  return fetch(url, {
+    signal: Abortable.any([abortable, Abortable.timeout(5000)]).toAbortSignal(),
+  });
+}
 ```
 
 --------------------------------------------------------------------------------
@@ -523,7 +480,6 @@ It immediately returns an equivalent `AsyncTask` object, allowing you to chain c
 ```ts
 settled<GNewValue extends IAsyncTaskConstraint<GNewValue>>(
   onSettled: IAsyncTaskOnSettledFunction<GValue, GNewValue>,
-  abortable: Abortable = this.#abortable,
 ): AsyncTask<GNewValue>
 ```
 
@@ -562,10 +518,6 @@ type IAsyncTaskState<GValue extends IAsyncTaskConstraint<GValue>> =
 - `onSettled`: a function **asynchronously** called when the `AsyncTask` is *resolved*. It happens when the `AsyncTask` is fully resolved with a *success*, *error*, or *abort* state.
   This function receives two parameters, the state of the `AsyncTask` (including its value or reason) and the `Abortable` provided as input.
   This function may return a value, an `AsyncTask` or a `Promise`.
-- `abortable`: this optional parameters gives us the opportunity to create a new `AsyncTask` with a different `Abortable`.
-  If omitted, the current `AsyncTask`'s `Abortable` is used instead.
-  If the current `AsyncTask` switches to an *aborted* state, this parameter gives us the opportunity to create a new `AsyncTask` with a different `Abortable`.
-  If omitted, the current `AsyncTask`'s `Abortable` is used instead.
 
 ##### return value
 
@@ -596,25 +548,22 @@ new AsyncTask<number>((success) => {
   success(Math.random() * 1000);
 }, abortable)
   .settled(
-    (state: IAsyncTaskState<number>, abortable: Abortable): AsynTask<void> => {
+    (state: IAsyncTaskSettledState<number>, abortable: Abortable): AsynTask<void> => {
       switch (state.state) {
         case 'success':
           return asyncTimeout(value, abortable);
         case 'error':
           console.error(error);
           throw error;
-        case 'aborted':
-          console.log('aborted');
       }
-      
-    },
-    (error: unknown, abortable: Abortable): never => {
-     
     },
   );
 ```
 
 #### then
+
+The `then()` method of an `AsyncTask` is equivalent to the `then()` method, but only with the `onSuccessful` callback function.
+
 
 The `then()` method of an `AsyncTask` object takes two arguments:
 the callback functions for the *success* and *error* cases of the `AsyncTask`.

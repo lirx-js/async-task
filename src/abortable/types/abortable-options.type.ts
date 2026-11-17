@@ -6,13 +6,6 @@ export interface IAbortableOptions {
 
 export type IOptionalAbortableOptions = Partial<IAbortableOptions>;
 
-export function optionalAbortableOptionsToAbortable(
-  options?: IOptionalAbortableOptions,
-): Abortable {
-  return (
-    (options === void 0)
-    || (options.abortable === void 0)
-  )
-    ? Abortable.never
-    : options?.abortable;
+export function optionalAbortableOptionsToAbortable(options?: IAbortableOptions): Abortable {
+  return options === void 0 || options.abortable === void 0 ? Abortable.never : options?.abortable;
 }

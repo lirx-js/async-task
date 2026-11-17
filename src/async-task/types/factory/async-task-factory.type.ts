@@ -7,8 +7,5 @@ import { IAsyncTaskInput } from '../async-task-input.type';
  * This is mostly used as an AsyncTask builder.
  */
 export interface IAsyncTaskFactory<GValue extends IAsyncTaskConstraint<GValue>> {
-  (
-    abortable: Abortable,
-  ): IAsyncTaskInput<GValue>;
+  (abortable: Abortable): IAsyncTaskInput<GValue>;
 }
-

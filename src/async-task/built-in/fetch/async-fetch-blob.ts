@@ -8,14 +8,7 @@ export function asyncFetchBlob(
   init: IAsyncFetchRequestInit,
   abortable: Abortable,
 ): AsyncTask<Blob> {
-  return asyncFetchBody(
-    input,
-    init,
-    (response: Response) => response.blob(),
-    abortable,
-  );
+  return asyncFetchBody(input, init, (response: Response) => response.blob(), abortable);
 }
 
 export type IAsyncFetchBlobFunction = typeof asyncFetchBlob;
-
-

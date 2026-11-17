@@ -8,9 +8,7 @@ export function asyncFetch(
   init: IAsyncFetchRequestInit,
   abortable: Abortable,
 ): AsyncTask<Response> {
-  return AsyncTask.fromFactory((
-    abortable: Abortable,
-  ): Promise<Response> => {
+  return AsyncTask.try((abortable: Abortable): Promise<Response> => {
     return fetch(input, {
       ...init,
       signal: abortable.toAbortSignal(),

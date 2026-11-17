@@ -18,18 +18,17 @@ export function asyncRetry<GValue extends IAsyncTaskConstraint<GValue>>(
   abortable: Abortable,
 ): AsyncTask<GValue> {
   if (count <= 0) {
-    return AsyncTask.error<GValue>(new Error(`Reached retry limit`), abortable);
+    return AsyncTask.reject<GValue>(new Error(`Reached retry limit`), abortable);
   } else {
-    return AsyncTask.fromFactory(factory, abortable)
-      .errored((error: unknown, abortable: Abortable): AsyncTask<GValue> | never => {
+    return AsyncTask.try(factory, abortable).catch(
+      (error: unknown, abortable: Abortable): AsyncTask<GValue> | never => {
         count--;
         if (count <= 0) {
           throw error;
         } else {
           return asyncRetry<GValue>(factory, count, abortable);
         }
-      });
+      },
+    );
   }
 }
-
-

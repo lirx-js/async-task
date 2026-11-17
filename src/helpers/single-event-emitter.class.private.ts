@@ -1,9 +1,7 @@
 import { noop } from './noop.private';
 
 export interface ISingleEventEmitterObserver<GValue> {
-  (
-    value: GValue,
-  ): void;
+  (value: GValue): void;
 }
 
 export interface ISingleEventEmitterUnsubscribe {
@@ -37,9 +35,7 @@ export class SingleEventEmitter<GValue> {
     return this.#valueConsumed;
   }
 
-  emit(
-    value: GValue,
-  ): void {
+  emit(value: GValue): void {
     if (this.#done) {
       throw new Error(`SingleEventEmitter is done.`);
     } else {
@@ -47,7 +43,8 @@ export class SingleEventEmitter<GValue> {
       this.#value = value;
       queueMicrotask((): void => {
         for (let i = 0, l = this.#emitFunctions.length; i < l; i++) {
-          const emitFunction: ISingleEventEmitterObserver<GValue> | undefined = this.#emitFunctions[i];
+          const emitFunction: ISingleEventEmitterObserver<GValue> | undefined =
+            this.#emitFunctions[i];
           if (emitFunction !== void 0) {
             this.#valueConsumed = true;
             emitFunction(this.#value);
@@ -58,9 +55,7 @@ export class SingleEventEmitter<GValue> {
     }
   }
 
-  subscribe(
-    emit: ISingleEventEmitterObserver<GValue>,
-  ): ISingleEventEmitterUnsubscribe {
+  subscribe(emit: ISingleEventEmitterObserver<GValue>): ISingleEventEmitterUnsubscribe {
     if (this.#done) {
       queueMicrotask((): void => {
         this.#valueConsumed = true;
@@ -76,7 +71,8 @@ export class SingleEventEmitter<GValue> {
           running = false;
           const index: number = this.#emitFunctions.indexOf(emit);
           if (index !== -1) {
-            if (this.#done) { // we are dispatching
+            if (this.#done) {
+              // we are dispatching
               this.#emitFunctions[index] = void 0;
             } else {
               this.#emitFunctions.splice(index, 1);

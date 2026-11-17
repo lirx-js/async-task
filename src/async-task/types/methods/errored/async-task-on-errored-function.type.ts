@@ -7,8 +7,5 @@ import { IAsyncTaskInput } from '../../async-task-input.type';
  * It receives the "error", and an Abortable used if the return is another AsyncTask.
  */
 export interface IAsyncTaskOnErroredFunction<GNewValue extends IAsyncTaskConstraint<GNewValue>> {
-  (
-    error: any,
-    abortable: Abortable,
-  ): IAsyncTaskInput<GNewValue>;
+  (error: any, abortable: Abortable): IAsyncTaskInput<GNewValue>;
 }

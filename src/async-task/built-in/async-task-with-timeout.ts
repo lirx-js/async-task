@@ -1,7 +1,7 @@
 import { Abortable } from '../../abortable/abortable.class';
-import { IAsyncTaskFactory } from '../types/factory/async-task-factory.type';
-import { IAsyncTaskConstraint } from '../types/async-task-constraint.type';
 import { AsyncTask } from '../async-task.class';
+import { IAsyncTaskConstraint } from '../types/async-task-constraint.type';
+import { IAsyncTaskFactory } from '../types/factory/async-task-factory.type';
 import { asyncTimeoutThrow } from './async-timeout-throw';
 
 export function asyncTaskWithTimeout<GValue extends IAsyncTaskConstraint<GValue>>(
@@ -10,7 +10,7 @@ export function asyncTaskWithTimeout<GValue extends IAsyncTaskConstraint<GValue>
   abortable: Abortable,
 ): AsyncTask<GValue> {
   if (timeout <= 0) {
-    return AsyncTask.fromFactory(factory, abortable);
+    return AsyncTask.try(factory, abortable);
   } else {
     return AsyncTask.race(
       [

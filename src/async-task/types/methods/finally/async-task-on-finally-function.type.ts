@@ -7,7 +7,5 @@ import { IAsyncTaskInput } from '../../async-task-input.type';
  * It receives an Abortable used if the return is another AsyncTask.
  */
 export interface IAsyncTaskOnFinallyFunction<GValue extends IAsyncTaskConstraint<GValue>> {
-  (
-    abortable: Abortable,
-  ): IAsyncTaskInput<void>;
+  (abortable: Abortable): IAsyncTaskInput<void>;
 }

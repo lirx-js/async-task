@@ -1,5 +1,5 @@
-import { IAsyncTaskConstraint } from './async-task-constraint.type';
 import { AsyncTask } from '../async-task.class';
+import { IAsyncTaskConstraint } from './async-task-constraint.type';
 
 /**
  * An AsyncTask, Promise, or any other value.
@@ -9,5 +9,4 @@ import { AsyncTask } from '../async-task.class';
 export type IAsyncTaskInput<GValue extends IAsyncTaskConstraint<GValue>> =
   | AsyncTask<GValue>
   | Promise<GValue>
-  | GValue
-  ;
+  | GValue;

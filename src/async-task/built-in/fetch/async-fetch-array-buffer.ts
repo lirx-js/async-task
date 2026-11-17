@@ -8,14 +8,7 @@ export function asyncFetchArrayBuffer(
   init: IAsyncFetchRequestInit,
   abortable: Abortable,
 ): AsyncTask<ArrayBuffer> {
-  return asyncFetchBody(
-    input,
-    init,
-    (response: Response) => response.arrayBuffer(),
-    abortable,
-  );
+  return asyncFetchBody(input, init, (response: Response) => response.arrayBuffer(), abortable);
 }
 
 export type IAsyncFetchArrayBufferFunction = typeof asyncFetchArrayBuffer;
-
-

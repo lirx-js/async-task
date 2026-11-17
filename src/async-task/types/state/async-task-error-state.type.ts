@@ -1,4 +1,4 @@
 export interface IAsyncTaskErrorState {
   readonly state: 'error';
-  readonly error: any;
+  readonly reason: unknown;
 }

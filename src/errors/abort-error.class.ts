@@ -1,12 +1,6 @@
 export class AbortError extends Error {
-  constructor(
-    message?: string,
-    options?: ErrorOptions,
-  ) {
-    super(
-      message,
-      options,
-    );
+  constructor(message?: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = 'AbortError';
   }
 }

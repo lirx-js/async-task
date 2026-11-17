@@ -6,9 +6,9 @@ import { IAsyncTaskInput } from '../../async-task-input.type';
  * A function called when an AsyncTask reaches a "success" state.
  * It receives the "value", and an Abortable used if the return is another AsyncTask.
  */
-export interface IAsyncTaskOnSuccessfulFunction<GValue extends IAsyncTaskConstraint<GValue>, GNewValue extends IAsyncTaskConstraint<GNewValue>> {
-  (
-    value: GValue,
-    abortable: Abortable,
-  ): IAsyncTaskInput<GNewValue>;
+export interface IAsyncTaskOnSuccessfulFunction<
+  GValue extends IAsyncTaskConstraint<GValue>,
+  GNewValue extends IAsyncTaskConstraint<GNewValue>,
+> {
+  (value: GValue, abortable: Abortable): IAsyncTaskInput<GNewValue>;
 }

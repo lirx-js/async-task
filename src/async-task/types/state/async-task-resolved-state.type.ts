@@ -1,5 +1,5 @@
-import { IAsyncTaskAbortState } from './async-task-abort-state.type';
 import { IAsyncTaskConstraint } from '../async-task-constraint.type';
+import { IAsyncTaskAbortState } from './async-task-abort-state.type';
 import { IAsyncTaskSettledState } from './async-task-settled-state.type.';
 
 /**
@@ -7,5 +7,4 @@ import { IAsyncTaskSettledState } from './async-task-settled-state.type.';
  */
 export type IAsyncTaskResolvedState<GValue extends IAsyncTaskConstraint<GValue>> =
   | IAsyncTaskSettledState<GValue>
-  | IAsyncTaskAbortState
-  ;
+  | IAsyncTaskAbortState;

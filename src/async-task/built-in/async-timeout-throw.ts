@@ -1,9 +1,9 @@
 import { Abortable } from '../../abortable/abortable.class';
 import { TimeoutError } from '../../errors/timeout-error.class';
-import { IAsyncTaskErrorFunction } from '../types/init/async-task-error-function.type';
-import { IAsyncTaskSuccessFunction } from '../types/init/async-task-success-function.type';
-import { IAsyncTaskConstraint } from '../types/async-task-constraint.type';
 import { AsyncTask } from '../async-task.class';
+import { IAsyncTaskConstraint } from '../types/async-task-constraint.type';
+import { IAsyncTaskRejectFunction } from '../types/init/async-task-reject-function.type';
+import { IAsyncTaskResolveFunction } from '../types/init/async-task-resolve-function.type';
 
 export interface IAsyncTimeoutThrowErrorFactory {
   (): any;
@@ -18,16 +18,19 @@ export function asyncTimeoutThrow<GValue extends IAsyncTaskConstraint<GValue> = 
   abortable: Abortable,
   onTimeout: IAsyncTimeoutThrowErrorFactory = DEFAULT_ASYNC_TIMEOUT_THROW_ERROR_FACTORY,
 ): AsyncTask<GValue> {
-  return new AsyncTask<GValue>((
-    success: IAsyncTaskSuccessFunction<GValue>,
-    error: IAsyncTaskErrorFunction,
-    abortable: Abortable,
-  ): void => {
-    const timer: any = setTimeout((): void => {
-      error(onTimeout());
-    }, ms);
-    abortable.onAbort((): void => {
-      clearTimeout(timer);
-    });
-  }, abortable);
+  return new AsyncTask<GValue>(
+    (
+      success: IAsyncTaskResolveFunction<GValue>,
+      error: IAsyncTaskRejectFunction,
+      abortable: Abortable,
+    ): void => {
+      const timer: any = setTimeout((): void => {
+        error(onTimeout());
+      }, ms);
+      abortable.onAbort((): void => {
+        clearTimeout(timer);
+      });
+    },
+    abortable,
+  );
 }

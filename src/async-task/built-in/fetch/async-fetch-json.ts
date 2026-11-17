@@ -9,14 +9,7 @@ export function asyncFetchJSON<GData extends IAsyncTaskConstraint<GData>>(
   init: IAsyncFetchRequestInit,
   abortable: Abortable,
 ): AsyncTask<GData> {
-  return asyncFetchBody(
-    input,
-    init,
-    (response: Response) => response.json(),
-    abortable,
-  );
+  return asyncFetchBody(input, init, (response: Response) => response.json(), abortable);
 }
 
 export type IAsyncFetchJSONFunction = typeof asyncFetchJSON;
-
-

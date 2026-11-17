@@ -1,37 +1,37 @@
+import { cleanUnsubscribeSet, IUnsubscribeSet, unsubscribeSet } from '@lirx/unsubscribe';
 import { Abortable } from '../abortable/abortable.class';
+import { AbortableController } from '../abortable/controller/abortable-controller.class';
 import { AbortError } from '../errors/abort-error.class';
 import { isPromise } from '../helpers/is-promise.private';
 import { noop } from '../helpers/noop.private';
-import { SingleEventEmitter, ISingleEventEmitterUnsubscribe } from '../helpers/single-event-emitter.class.private';
+import {
+  ISingleEventEmitterUnsubscribe,
+  SingleEventEmitter,
+} from '../helpers/single-event-emitter.class.private';
 import { IAsyncTaskConstraint } from './types/async-task-constraint.type';
 import { IAsyncTaskInput } from './types/async-task-input.type';
 import { IAsyncTaskFactory } from './types/factory/async-task-factory.type';
 import { IGenericAsyncTaskFactoriesList } from './types/factory/generic-async-task-factories-list.type';
-import { IAsyncTaskErrorFunction } from './types/init/async-task-error-function.type';
+import { IGenericAsyncTaskFactory } from './types/factory/generic-async-task-factory.type';
 import { IAsyncTaskInitFunction } from './types/init/async-task-init-function.type';
-import { IAsyncTaskSuccessFunction } from './types/init/async-task-success-function.type';
+import { IAsyncTaskRejectFunction } from './types/init/async-task-reject-function.type';
+import { IAsyncTaskResolveFunction } from './types/init/async-task-resolve-function.type';
 import { IAsyncTaskOnErroredFunction } from './types/methods/errored/async-task-on-errored-function.type';
 import { IAsyncTaskOnFinallyFunction } from './types/methods/finally/async-task-on-finally-function.type';
-import { IAsyncTaskOnSuccessfulFunction } from './types/methods/successful/async-task-on-successful-function.type';
-import { IAsyncTaskResolvedState } from './types/state/async-task-resolved-state.type';
-import { InferAsyncTaskAllReturnedValueList } from './types/static-methods/all/infer-async-task-all-returned-value-list.type';
-import { IAsyncTaskDeferReturn } from './types/static-methods/defer/async-task-defer-return.type';
-import { InferAsyncTaskRaceReturnedValue } from './types/static-methods/race/infer-async-task-race-returned-value.type';
-import { IAsyncTaskWhenResolvedFunction } from './types/static-methods/when-resolved/async-task-when-resolved-function.type';
-import { IAbortableUnsubscribe } from '../abortable/types/methods/on-abort/abortable-unsubscribe.type';
-import { IAsyncTaskWhenResolvedUnsubscribe } from './types/static-methods/when-resolved/async-task-when-resolved-unsubscribe.type';
-import { IGenericAsyncTaskFactory } from './types/factory/generic-async-task-factory.type';
-import { AbortableController } from '../abortable/controller/abortable-controller.class';
-import { unsubscribeSet, IUnsubscribeSet, cleanUnsubscribeSet } from '@lirx/unsubscribe';
 import { IAsyncTaskOnSettledFunction } from './types/methods/settled/async-task-on-settled-function.type';
+import { IAsyncTaskOnSuccessfulFunction } from './types/methods/successful/async-task-on-successful-function.type';
+import { IAsyncTaskWhenResolvedFunction } from './types/methods/when-resolved/async-task-when-resolved-function.type';
+import { IAsyncTaskWhenResolvedUnsubscribe } from './types/methods/when-resolved/async-task-when-resolved-unsubscribe.type';
+import { IAsyncTaskResolvedState } from './types/state/async-task-resolved-state.type';
 import { IAsyncTaskSettledState } from './types/state/async-task-settled-state.type.';
-import {
-  InferAsyncTaskAllSettledReturnedValueList,
-} from './types/static-methods/all-settled/async-task-all-settled-values-list-return.type';
+import { InferAsyncTaskAllSettledReturnedValueList } from './types/static-methods/all-settled/async-task-all-settled-values-list-return.type';
+import { InferAsyncTaskAllReturnedValueList } from './types/static-methods/all/infer-async-task-all-returned-value-list.type';
+import { InferAsyncTaskRaceReturnedValue } from './types/static-methods/race/infer-async-task-race-returned-value.type';
+import { IAsyncTaskWithResolvers } from './types/static-methods/with-resolvers/async-task-with-resolvers.type';
 
 /*--------------------*/
 
-/** TYPES **/
+/* TYPES */
 
 export const ASYNC_TASK_SUCCESS = Symbol();
 
@@ -39,19 +39,15 @@ const PENDING_STATE = 0;
 const RESOLVING_STATE = 1;
 const RESOLVED_STATE = 2;
 
-type IAsyncTaskState =
-  | typeof PENDING_STATE
-  | typeof RESOLVING_STATE
-  | typeof RESOLVED_STATE
-  ;
+type IAsyncTaskState = typeof PENDING_STATE | typeof RESOLVING_STATE | typeof RESOLVED_STATE;
 
-/** CLASS **/
+/* CLASS */
 
 export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
   /**
-   * Creates an AsyncTask from an IAsyncTaskFactory.
+   * Creates an AsyncTask from a factory.
    */
-  static fromFactory<GValue extends IAsyncTaskConstraint<GValue>>(
+  static try<GValue extends IAsyncTaskConstraint<GValue>>(
     factory: IAsyncTaskFactory<GValue>,
     abortable: Abortable,
   ): AsyncTask<GValue> {
@@ -63,53 +59,51 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
       try {
         input = factory(abortable);
       } catch (error: unknown) {
-        return this.error<GValue>(error, abortable);
+        return this.reject<GValue>(error, abortable);
       }
 
       if (input instanceof AsyncTask) {
         if (input.#abortable === abortable) {
           return input;
         } else {
-          throw new Error(`AsyncTask must have the same Abortable than the one provided.`);
+          throw new Error('AsyncTask must have the same Abortable than the one provided.');
         }
       } else {
-        return this.success(input, abortable);
+        return this.resolve(input, abortable);
       }
     }
   }
 
   /**
-   * Creates a "successful" AsyncTask.
-   * If "value" is an AsyncTask or Promise, then the returned AsyncTask will take the same state when resolved.
+   * Creates a *successful* AsyncTask.
+   * If `value` is an AsyncTask or Promise, then the returned AsyncTask will take the same state when resolved.
    */
-  static success<GValue extends IAsyncTaskConstraint<GValue>>(
+  static resolve<GValue extends IAsyncTaskConstraint<GValue>>(
     value: IAsyncTaskInput<GValue>,
     abortable: Abortable,
   ): AsyncTask<GValue> {
-    return new AsyncTask<GValue>((
-      success: IAsyncTaskSuccessFunction<GValue>,
-    ): void => {
-      success(value);
+    return new AsyncTask<GValue>((resolve: IAsyncTaskResolveFunction<GValue>): void => {
+      resolve(value);
     }, abortable);
   }
 
   /**
-   * Creates an "errored" AsyncTask.
+   * Creates an *errored* AsyncTask.
    */
-  static error<GValue extends IAsyncTaskConstraint<GValue> = any>(
-    _error: any,
+  static reject<GValue extends IAsyncTaskConstraint<GValue> = any>(
+    reason: unknown,
     abortable: Abortable,
   ): AsyncTask<GValue> {
-    return new AsyncTask<GValue>((
-      success: IAsyncTaskSuccessFunction<GValue>,
-      error: IAsyncTaskErrorFunction,
-    ): void => {
-      error(_error);
-    }, abortable);
+    return new AsyncTask<GValue>(
+      (resolve: IAsyncTaskResolveFunction<GValue>, reject: IAsyncTaskRejectFunction): void => {
+        reject(reason);
+      },
+      abortable,
+    );
   }
 
   /**
-   * Creates an AsyncTask that never complete (never enter in a "success" or "error" state).
+   * Creates an AsyncTask that never completes (never enters in a *success* or *error* state).
    * However, it can still be aborted.
    */
   static never<GValue extends IAsyncTaskConstraint<GValue> = any>(
@@ -119,68 +113,39 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
   }
 
   /**
-   * Creates a "successful" AsyncTask, whose value is "undefined".
+   * Creates a *successful* AsyncTask, whose value is `undefined`.
    */
-  static void(
-    abortable: Abortable,
-  ): AsyncTask<void> {
-    return this.success<void>(void 0, abortable);
+  static void(abortable: Abortable): AsyncTask<void> {
+    return this.resolve<void>(void 0, abortable);
   }
 
   /**
-   * Creates an AsyncTask with exposed "success" and "error" functions.
+   * Creates an AsyncTask with exposed `success` and `error` functions.
    */
-  static defer<GValue extends IAsyncTaskConstraint<GValue>>(
+  static withResolvers<GValue extends IAsyncTaskConstraint<GValue>>(
     abortable: Abortable,
-  ): IAsyncTaskDeferReturn<GValue> {
-    let success!: IAsyncTaskSuccessFunction<GValue>;
-    let error!: IAsyncTaskErrorFunction;
+  ): IAsyncTaskWithResolvers<GValue> {
+    let resolve!: IAsyncTaskResolveFunction<GValue>;
+    let reject!: IAsyncTaskRejectFunction;
 
-    const task = new AsyncTask<GValue>((
-      _success: IAsyncTaskSuccessFunction<GValue>,
-      _error: IAsyncTaskErrorFunction,
-    ): void => {
-      success = _success;
-      error = _error;
-    }, abortable);
+    const task: AsyncTask<GValue> = new AsyncTask<GValue>(
+      (_resolve: IAsyncTaskResolveFunction<GValue>, _reject: IAsyncTaskRejectFunction): void => {
+        resolve = _resolve;
+        reject = _reject;
+      },
+      abortable,
+    );
 
     return {
       task,
-      success,
-      error,
+      resolve,
+      reject,
     };
   }
 
-  // static abc(): any {
-  //   const toUnsubscribe: IUnsubscribeSet = unsubscribeSet();
-  //
-  //   const clean = (): void => {
-  //     cleanUnsubscribeSet(toUnsubscribe);
-  //   };
-  //
-  //   const sharedAbortableController: AbortableController = new AbortableController([abortable]);
-  //   const sharedAbortable: Abortable = sharedAbortableController.abortable;
-  //
-  //   const success = (
-  //     value: GValues,
-  //   ): void => {
-  //     sharedAbortableController.abort(ASYNC_TASK_SUCCESS);
-  //     _success(value);
-  //   };
-  //
-  //   const error = (
-  //     error: any,
-  //   ): void => {
-  //     sharedAbortableController.abort(error);
-  //     _error(error);
-  //   };
-  //
-  //   toUnsubscribe.add(sharedAbortable.onAbort(clean));
-  // }
-
   /**
    * Returns an AsyncTask resolved with all the values returned by the factories (as an array of values).
-   * If any of the AsyncTasks returned by the factories reaches an "error" state, the returned AsyncTask gets in an "error" state too,
+   * If any of the AsyncTasks returned by the factories reaches an *error* state, the returned AsyncTask goes into an *error* state too,
    * add all the factories are aborted.
    */
   static all<GFactories extends IGenericAsyncTaskFactoriesList>(
@@ -198,76 +163,76 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
     type GValue = any;
     type GValues = GValue[];
 
-    return new AsyncTask<GValues>((
-      _success: IAsyncTaskSuccessFunction<GValues>,
-      _error: IAsyncTaskErrorFunction,
-      abortable: Abortable,
-    ): void => {
-      const toUnsubscribe: IUnsubscribeSet = unsubscribeSet();
-
-      const clean = (): void => {
-        cleanUnsubscribeSet(toUnsubscribe);
-      };
-
-      const sharedAbortableController: AbortableController = new AbortableController([abortable]);
-      const sharedAbortable: Abortable = sharedAbortableController.abortable;
-
-      const success = (
-        value: GValues,
+    return new AsyncTask<GValues>(
+      (
+        _resolve: IAsyncTaskResolveFunction<GValues>,
+        _reject: IAsyncTaskRejectFunction,
+        abortable: Abortable,
       ): void => {
-        sharedAbortableController.abort(ASYNC_TASK_SUCCESS);
-        _success(value);
-      };
+        const toUnsubscribe: IUnsubscribeSet = unsubscribeSet();
 
-      const error = (
-        error: any,
-      ): void => {
-        sharedAbortableController.abort(error);
-        _error(error);
-      };
+        const clean = (): void => {
+          cleanUnsubscribeSet(toUnsubscribe);
+        };
 
-      toUnsubscribe.add(sharedAbortable.onAbort(clean));
+        const sharedAbortableController: AbortableController = new AbortableController([abortable]);
+        const sharedAbortable: Abortable = sharedAbortableController.abortable;
 
-      let done: number = 0;
-      let total: number = 0;
-      let values: GValues;
+        const resolve = (value: GValues): void => {
+          sharedAbortableController.abort(ASYNC_TASK_SUCCESS);
+          _resolve(value);
+        };
 
-      const successIfDone = (): void => {
-        if (done === total) {
-          success(values);
-        }
-      };
+        const reject = (reason?: unknown): void => {
+          sharedAbortableController.abort(reason);
+          _reject(reason);
+        };
 
-      const iterator: Iterator<IAsyncTaskFactory<GValue>> = factories[Symbol.iterator]();
-      let result: IteratorResult<IAsyncTaskFactory<GValue>>;
+        toUnsubscribe.add(sharedAbortable.onAbort(clean));
 
-      while (!(result = iterator.next()).done) {
-        const i: number = total;
-        total++;
+        let done: number = 0;
+        let total: number = 0;
+        let values: GValues;
 
-        const task: AsyncTask<GValue> = this.fromFactory(result.value, sharedAbortable);
-
-        const unsubscribeOfResolvedState: ISingleEventEmitterUnsubscribe = task.#resolvedStateEventEmitter.subscribe((
-          state: IAsyncTaskResolvedState<GValue>,
-        ): void => {
-          unsubscribeOfResolvedState();
-          toUnsubscribe.delete(unsubscribeOfResolvedState);
-
-          if (state.state === 'success') {
-            done++;
-            values[i] = state.value;
-            successIfDone();
-          } else if (state.state === 'error') {
-            error(state.error);
+        const resolveIfDone = (): void => {
+          if (done === total) {
+            resolve(values);
           }
-        });
+        };
 
-        toUnsubscribe.add(unsubscribeOfResolvedState);
-      }
+        const iterator: Iterator<IAsyncTaskFactory<GValue>> = factories[Symbol.iterator]();
+        let result: IteratorResult<IAsyncTaskFactory<GValue>>;
 
-      values = new Array<GValue>(total);
-      successIfDone();
-    }, abortable);
+        while (!(result = iterator.next()).done) {
+          const i: number = total;
+          total++;
+
+          const task: AsyncTask<GValue> = this.try(result.value, sharedAbortable);
+
+          const unsubscribeOfResolvedState: ISingleEventEmitterUnsubscribe =
+            task.#resolvedStateEventEmitter.subscribe(
+              (state: IAsyncTaskResolvedState<GValue>): void => {
+                unsubscribeOfResolvedState();
+                toUnsubscribe.delete(unsubscribeOfResolvedState);
+
+                if (state.state === 'success') {
+                  done++;
+                  values[i] = state.value;
+                  resolveIfDone();
+                } else if (state.state === 'error') {
+                  reject(state.reason);
+                }
+              },
+            );
+
+          toUnsubscribe.add(unsubscribeOfResolvedState);
+        }
+
+        values = new Array<GValue>(total);
+        resolveIfDone();
+      },
+      abortable,
+    );
   }
 
   /**
@@ -282,69 +247,65 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
     factories: Iterable<IAsyncTaskFactory<GValue>>,
     abortable: Abortable,
   ): AsyncTask<GValue>;
-  static race(
-    factories: Iterable<IGenericAsyncTaskFactory>,
-    abortable: Abortable,
-  ): AsyncTask<any> {
+  static race(factories: Iterable<IGenericAsyncTaskFactory>, abortable: Abortable): AsyncTask<any> {
     type GValue = any;
 
-    return new AsyncTask<GValue>((
-      _success: IAsyncTaskSuccessFunction<GValue>,
-      _error: IAsyncTaskErrorFunction,
-      abortable: Abortable,
-    ): void => {
-      const toUnsubscribe: IUnsubscribeSet = unsubscribeSet();
-
-      const clean = (): void => {
-        cleanUnsubscribeSet(toUnsubscribe);
-      };
-
-      const sharedAbortableController: AbortableController = new AbortableController([abortable]);
-      const sharedAbortable: Abortable = sharedAbortableController.abortable;
-
-      const success = (
-        value: GValue,
+    return new AsyncTask<GValue>(
+      (
+        _resolve: IAsyncTaskResolveFunction<GValue>,
+        _reject: IAsyncTaskRejectFunction,
+        abortable: Abortable,
       ): void => {
-        sharedAbortableController.abort(ASYNC_TASK_SUCCESS);
-        _success(value);
-      };
+        const toUnsubscribe: IUnsubscribeSet = unsubscribeSet();
 
-      const error = (
-        error: any,
-      ): void => {
-        sharedAbortableController.abort(error);
-        _error(error);
-      };
+        const clean = (): void => {
+          cleanUnsubscribeSet(toUnsubscribe);
+        };
 
-      toUnsubscribe.add(sharedAbortable.onAbort(clean));
+        const sharedAbortableController: AbortableController = new AbortableController([abortable]);
+        const sharedAbortable: Abortable = sharedAbortableController.abortable;
 
-      const iterator: Iterator<IAsyncTaskFactory<GValue>> = factories[Symbol.iterator]();
-      let result: IteratorResult<IAsyncTaskFactory<GValue>>;
+        const resolve = (value: GValue): void => {
+          sharedAbortableController.abort(ASYNC_TASK_SUCCESS);
+          _resolve(value);
+        };
 
-      while (!(result = iterator.next()).done) {
+        const reject = (reason?: unknown): void => {
+          sharedAbortableController.abort(reason);
+          _reject(reason);
+        };
 
-        const task: AsyncTask<GValue> = this.fromFactory(result.value, sharedAbortable);
+        toUnsubscribe.add(sharedAbortable.onAbort(clean));
 
-        const unsubscribeOfResolvedState: ISingleEventEmitterUnsubscribe = task.#resolvedStateEventEmitter.subscribe((
-          state: IAsyncTaskResolvedState<GValue>,
-        ): void => {
-          unsubscribeOfResolvedState();
-          toUnsubscribe.delete(unsubscribeOfResolvedState);
+        const iterator: Iterator<IAsyncTaskFactory<GValue>> = factories[Symbol.iterator]();
+        let result: IteratorResult<IAsyncTaskFactory<GValue>>;
 
-          if (state.state === 'success') {
-            success(state.value);
-          } else if (state.state === 'error') {
-            error(state.error);
-          }
-        });
+        while (!(result = iterator.next()).done) {
+          const task: AsyncTask<GValue> = this.try(result.value, sharedAbortable);
 
-        toUnsubscribe.add(unsubscribeOfResolvedState);
-      }
-    }, abortable);
+          const unsubscribeOfResolvedState: ISingleEventEmitterUnsubscribe =
+            task.#resolvedStateEventEmitter.subscribe(
+              (state: IAsyncTaskResolvedState<GValue>): void => {
+                unsubscribeOfResolvedState();
+                toUnsubscribe.delete(unsubscribeOfResolvedState);
+
+                if (state.state === 'success') {
+                  resolve(state.value);
+                } else if (state.state === 'error') {
+                  reject(state.reason);
+                }
+              },
+            );
+
+          toUnsubscribe.add(unsubscribeOfResolvedState);
+        }
+      },
+      abortable,
+    );
   }
 
   /**
-   * Returns a "successful" AsyncTask when all the factories are resolved.
+   * Returns a *successful* AsyncTask when all the factories are resolved.
    * The result is an array with the state of each of these factories.
    */
   static allSettled<GFactories extends IGenericAsyncTaskFactoriesList>(
@@ -362,20 +323,16 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
     type GValue = any;
     type GValues = IAsyncTaskSettledState<GValue>[];
 
-    return new AsyncTask<GValues>((
-      _success: IAsyncTaskSuccessFunction<GValues>,
-    ): void => {
+    return new AsyncTask<GValues>((_resolve: IAsyncTaskResolveFunction<GValues>): void => {
       const toUnsubscribe: IUnsubscribeSet = unsubscribeSet();
 
       const clean = (): void => {
         cleanUnsubscribeSet(toUnsubscribe);
       };
 
-      const success = (
-        value: GValues,
-      ): void => {
+      const resolve = (value: GValues): void => {
         clean();
-        _success(value);
+        _resolve(value);
       };
 
       toUnsubscribe.add(abortable.onAbort(clean));
@@ -386,7 +343,7 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
 
       const successIfDone = (): void => {
         if (done === total) {
-          success(values);
+          resolve(values);
         }
       };
 
@@ -397,23 +354,21 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
         const i: number = total;
         total++;
 
-        const task: AsyncTask<GValue> = this.fromFactory(result.value, abortable);
+        const task: AsyncTask<GValue> = this.try(result.value, abortable);
 
-        const unsubscribeOfResolvedState: ISingleEventEmitterUnsubscribe = task.#resolvedStateEventEmitter.subscribe((
-          state: IAsyncTaskResolvedState<GValue>,
-        ): void => {
-          unsubscribeOfResolvedState();
-          toUnsubscribe.delete(unsubscribeOfResolvedState);
+        const unsubscribeOfResolvedState: ISingleEventEmitterUnsubscribe =
+          task.#resolvedStateEventEmitter.subscribe(
+            (state: IAsyncTaskResolvedState<GValue>): void => {
+              unsubscribeOfResolvedState();
+              toUnsubscribe.delete(unsubscribeOfResolvedState);
 
-          if (
-            (state.state === 'success')
-            || (state.state === 'error')
-          ) {
-            done++;
-            values[i] = state;
-            successIfDone();
-          }
-        });
+              if (state.state === 'success' || state.state === 'error') {
+                done++;
+                values[i] = state;
+                successIfDone();
+              }
+            },
+          );
 
         toUnsubscribe.add(unsubscribeOfResolvedState);
       }
@@ -423,53 +378,6 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
     }, abortable);
   }
 
-  static switchAbortable<GValue extends IAsyncTaskConstraint<GValue>>(
-    asyncTask: AsyncTask<GValue>,
-    abortable: Abortable,
-  ): AsyncTask<GValue> {
-    if (abortable === asyncTask.#abortable) {
-      return asyncTask;
-    } else {
-      return new AsyncTask<GValue>((
-        success: IAsyncTaskSuccessFunction<GValue>,
-        error: IAsyncTaskErrorFunction,
-        abortable: Abortable,
-      ): void => {
-        const clean = (): void => {
-          unsubscribeOfOnAbort();
-          unsubscribeOfResolvedState();
-        };
-
-        const unsubscribeOfOnAbort: IAbortableUnsubscribe = abortable.onAbort(clean);
-
-        const unsubscribeOfResolvedState: ISingleEventEmitterUnsubscribe = asyncTask.#resolvedStateEventEmitter.subscribe((
-          state: IAsyncTaskResolvedState<GValue>,
-        ): void => {
-          clean();
-
-          if (state.state === 'success') {
-            success(state.value);
-          } else if (state.state === 'error') {
-            error(state.error);
-          } else /*if (state.state === 'abort')*/ {
-            error(state.reason);
-          }
-        });
-
-      }, abortable);
-    }
-  }
-
-  /**
-   * Creates a listener calling `whenResolved` when the `asyncTask` reaches a "resolved" state.
-   */
-  static whenResolved<GValue extends IAsyncTaskConstraint<GValue>>(
-    asyncTask: AsyncTask<GValue>,
-    whenResolved: IAsyncTaskWhenResolvedFunction<GValue>,
-  ): IAsyncTaskWhenResolvedUnsubscribe {
-    return asyncTask.#resolvedStateEventEmitter.subscribe(whenResolved);
-  }
-
   // the internal state of this AsyncTask
   #state: IAsyncTaskState;
   // the state of this AsyncTask represented as an EventEmitter
@@ -477,10 +385,17 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
   // the abortable linked to this AsyncTask
   readonly #abortable: Abortable;
 
-  constructor(
-    init: IAsyncTaskInitFunction<GValue>,
-    abortable: Abortable,
-  ) {
+  /**
+   * Constructs an AsyncTask, providing an `init` function and an `Abortable`.
+   *
+   * If `abortable` is not aborted, the `init`function is called with 3 arguments:
+   *  - `success`: a function to call to resolve the AsyncTask with a *success* state.
+   *  - `error`: a function to call to resolve the AsyncTask with an *error* state.
+   *  - `abortable`: the provided abortable.
+   *
+   *  If at any point, the Abortable is aborted before the AsyncTask is fully resolved, then the AsyncTask enters into an `aborted` state.
+   */
+  constructor(init: IAsyncTaskInitFunction<GValue>, abortable: Abortable) {
     this.#state = PENDING_STATE;
     this.#resolvedStateEventEmitter = new SingleEventEmitter<IAsyncTaskResolvedState<GValue>>();
     this.#abortable = abortable;
@@ -493,9 +408,7 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
     };
 
     // leaves the "resolving" state to enter in a "resolved" state.
-    const resolved = (
-      resolvedState: IAsyncTaskResolvedState<GValue>,
-    ): void => {
+    const resolved = (resolvedState: IAsyncTaskResolvedState<GValue>): void => {
       if (this.#state === RESOLVING_STATE) {
         clean();
 
@@ -503,20 +416,15 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
         this.#resolvedStateEventEmitter.emit(resolvedState);
 
         setTimeout((): void => {
-          if (
-            (resolvedState.state === 'error')
-            && !this.#resolvedStateEventEmitter.valueConsumed
-          ) {
-            console.error(`Uncaught (in AsyncTask)`, resolvedState.error);
+          if (resolvedState.state === 'error' && !this.#resolvedStateEventEmitter.valueConsumed) {
+            console.error('Uncaught (in AsyncTask)', resolvedState.reason);
           }
         }, 0);
       }
     };
 
     // resolves this AsyncTask into an "abort" state
-    const resolvedWithAbort = (
-      reason: any,
-    ): void => {
+    const resolvedWithAbort = (reason: any): void => {
       resolved({
         state: 'abort',
         reason,
@@ -524,10 +432,8 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
     };
 
     // aborts this AsyncTask
-    const abort = (
-      reason: any,
-    ): void => {
-      if (this.#state === PENDING_STATE) {
+    const abort = (reason?: unknown): void => {
+      if (this.#state !== RESOLVED_STATE) {
         this.#state = RESOLVING_STATE;
         resolvedWithAbort(reason);
       }
@@ -538,84 +444,8 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
     } else {
       toUnsubscribe.add(abortable.onAbort(abort));
 
-      // resolves an IAsyncTaskInput:
-      // it waits until the provided "input" is fully resolved, and calls the corresponding callback.
-      // - a Promise: fulfilled => resolvedWithSuccess(), rejected => resolvedWithError()
-      // - a AsyncTask: successful => resolvedWithSuccess(), errored => resolvedWithError(), aborted => resolvedWithAbort()
-      // - another value: resolvedWithSuccess()
-      // this garanties that the "value" given to this AsyncTask follows the IAsyncTaskConstraint.
-      const resolve = <GValue extends IAsyncTaskConstraint<GValue>>(
-        input: IAsyncTaskInput<GValue>,
-        abortable: Abortable,
-        resolvedWithSuccess: (
-          value: GValue,
-        ) => void,
-        resolvedWithError: (
-          error: any,
-        ) => void,
-        resolvedWithAbort: (
-          reason: any,
-        ) => void,
-      ): void => {
-        if (abortable.aborted) {
-          resolvedWithAbort(abortable.reason);
-        } else {
-          if (input instanceof AsyncTask) {
-            if (input.#abortable === abortable) {
-              const unsubscribeOfResolvedState: ISingleEventEmitterUnsubscribe = input.#resolvedStateEventEmitter.subscribe((
-                state: IAsyncTaskResolvedState<GValue>,
-              ): void => {
-                unsubscribeOfResolvedState();
-                toUnsubscribe.delete(unsubscribeOfResolvedState);
-
-                if (state.state === 'success') {
-                  resolvedWithSuccess(state.value);
-                } else if (state.state === 'error') {
-                  resolvedWithError(state.error);
-                } else/* if (state.state === 'abort')*/ {
-                  resolvedWithAbort(state.reason);
-                }
-              });
-
-              toUnsubscribe.add(unsubscribeOfResolvedState);
-            } else {
-              resolvedWithError(new Error(`AsyncTask must have the same Abortable than the one provided.`));
-            }
-          } else if (isPromise(input)) {
-            input.then(
-              (
-                value: GValue,
-              ): void => {
-                resolve<GValue>(
-                  value,
-                  abortable,
-                  resolvedWithSuccess,
-                  resolvedWithError,
-                  resolvedWithAbort,
-                );
-              },
-              (
-                error: any,
-              ): any => {
-                resolve<GValue>(
-                  error,
-                  abortable,
-                  resolvedWithError,
-                  resolvedWithError,
-                  resolvedWithAbort,
-                );
-              },
-            );
-          } else {
-            resolvedWithSuccess(input);
-          }
-        }
-      };
-
       // resolves this AsyncTask into a "success" state
-      const resolvedWithSuccess = (
-        value: GValue,
-      ): void => {
+      const resolvedWithSuccess = (value: GValue): void => {
         resolved({
           state: 'success',
           value,
@@ -623,163 +453,246 @@ export class AsyncTask<GValue extends IAsyncTaskConstraint<GValue>> {
       };
 
       // resolves this AsyncTask into an "error" state
-      const resolvedWithError = (
-        error: any,
-      ): void => {
+      const resolvedWithError = (reason?: unknown): void => {
         resolved({
           state: 'error',
-          error,
+          reason,
         });
       };
 
-      // starts resolving this AsyncTask with a "success" state as target (however, the resolved state may differ depending on the given value).
-      const success = (
-        value: IAsyncTaskInput<GValue>,
-      ): void => {
+      // starts resolving this AsyncTask with a "success" state as target.
+      // it waits until the provided "value" is fully resolved, and calls the corresponding callback.
+      // - a Promise: fulfilled => resolvedWithSuccess(), rejected => resolvedWithError()
+      // - an AsyncTask: successful => resolvedWithSuccess(), errored => resolvedWithError(), aborted => resolvedWithError()
+      // - another value: resolvedWithSuccess()
+      // it garanties that the "value" given to this AsyncTask follows the IAsyncTaskConstraint.
+      const resolve = (value: IAsyncTaskInput<GValue>): void => {
         if (this.#state === PENDING_STATE) {
           this.#state = RESOLVING_STATE;
-          resolve(
-            value,
-            abortable,
-            resolvedWithSuccess,
-            resolvedWithError,
-            resolvedWithAbort,
-          );
+
+          if (value instanceof AsyncTask) {
+            if (value.#abortable === abortable) {
+              const unsubscribeOfResolvedState: ISingleEventEmitterUnsubscribe =
+                value.#resolvedStateEventEmitter.subscribe(
+                  (state: IAsyncTaskResolvedState<GValue>): void => {
+                    unsubscribeOfResolvedState();
+                    toUnsubscribe.delete(unsubscribeOfResolvedState);
+
+                    if (state.state === 'success') {
+                      resolvedWithSuccess(state.value);
+                    } else if (state.state === 'error') {
+                      resolvedWithError(state.reason);
+                    } /* if (state.state === 'abort')*/ else {
+                      resolvedWithError(state.reason);
+                    }
+                  },
+                );
+
+              toUnsubscribe.add(unsubscribeOfResolvedState);
+            } else {
+              resolvedWithError(
+                new Error('AsyncTask must have the same Abortable than the one provided.'),
+              );
+            }
+          } else if (isPromise(value)) {
+            value.then(
+              (value: GValue): void => {
+                if ((value as any) instanceof AsyncTask) {
+                  resolvedWithError(new Error('Promise returned an AsyncTask'));
+                } else {
+                  resolvedWithSuccess(value);
+                }
+              },
+              (error: any): any => {
+                resolvedWithError(error);
+              },
+            );
+          } else {
+            resolvedWithSuccess(value);
+          }
         }
       };
 
       // starts resolving this AsyncTask with an "error" state as target.
-      const error = (
-        error: any,
-      ): void => {
+      const reject = (reason?: unknown): void => {
         if (this.#state === PENDING_STATE) {
           this.#state = RESOLVING_STATE;
-          resolve(
-            error,
-            abortable,
-            resolvedWithError,
-            resolvedWithError,
-            resolvedWithAbort,
-          );
+          resolvedWithError(reason);
         }
       };
 
       try {
-        init(
-          success,
-          error,
-          abortable,
-        );
+        init(resolve, reject, abortable);
       } catch (_error: unknown) {
-        error(_error);
+        reject(_error);
       }
     }
   }
 
+  /**
+   * The Abortable linked with this AsyncTask.
+   */
   get abortable(): Abortable {
     return this.#abortable;
   }
 
+  /* CHAINING */
+
+  #settled<GNewValue extends IAsyncTaskConstraint<GNewValue>>(
+    onSettled?: IAsyncTaskOnSettledFunction<GValue, GNewValue> | undefined | null,
+    abortable: Abortable = this.#abortable,
+  ): AsyncTask<GNewValue> {
+    if (typeof onSettled !== 'function' && abortable === this.#abortable) {
+      return this;
+    } else {
+      return new AsyncTask<GNewValue>(
+        (
+          resolve: IAsyncTaskResolveFunction<GNewValue>,
+          reject: IAsyncTaskRejectFunction,
+          abortable: Abortable,
+        ): void => {
+          this.#resolvedStateEventEmitter.subscribe(
+            (state: IAsyncTaskResolvedState<GValue>): void => {
+              if (state.state === 'success' || state.state === 'error') {
+                if (typeof onSettled === 'function') {
+                  try {
+                    resolve(onSettled(state, abortable));
+                  } catch (_error: unknown) {
+                    return reject(_error);
+                  }
+                } else {
+                  if (state.state === 'success') {
+                    resolve(state.value);
+                  } else {
+                    reject(state.reason);
+                  }
+                }
+              } /*if (state.state === 'abort')*/ else {
+                reject(state.reason);
+              }
+            },
+          );
+        },
+        abortable,
+      );
+    }
+  }
+
+  /**
+   * When the AsyncTask is resolved, `onSettled` is called with the result state,
+   * and the return used as a value for the immediately returned AsyncTask.
+   */
   settled<GNewValue extends IAsyncTaskConstraint<GNewValue>>(
-    onSettled: IAsyncTaskOnSettledFunction<GValue, GNewValue>,
+    onSettled?: IAsyncTaskOnSettledFunction<GValue, GNewValue> | undefined | null,
   ): AsyncTask<GNewValue> {
-    return new AsyncTask<GNewValue>((
-      success: IAsyncTaskSuccessFunction<GNewValue>,
-      error: IAsyncTaskErrorFunction,
-      abortable: Abortable,
-    ): void => {
-      this.#resolvedStateEventEmitter.subscribe((
-        state: IAsyncTaskResolvedState<GValue>,
-      ): void => {
-        try {
-          if (
-            (state.state === 'success')
-            || (state.state === 'error')
-          ) {
-            success(onSettled(state, abortable));
-          } else /*if (state.state === 'abort')*/ {
-            error(state.reason);
-          }
-        } catch (_error: unknown) {
-          return error(_error);
-        }
-      });
-    }, this.#abortable);
+    return this.#settled(onSettled);
   }
 
+  /**
+   * Creates a new AsyncTask resolved with the same value/error than the current ont, but using a different `abortable`.
+   *
+   * If the current AsyncTask is aborted, then the returned AsyncTask becomes *errored*.
+   */
+  switchAbortable(abortable: Abortable): AsyncTask<GValue> {
+    return this.#settled(null, abortable);
+  }
+
+  // PROMISE LIKE METHODS
+
+  /**
+   * When the AsyncTask is resolved with a *success* state, `onSuccessful` is called,
+   * else, if it is resolved with an *error* state, `onErrored` is called.
+   */
   then<GNewValue extends IAsyncTaskConstraint<GNewValue>>(
-    onSuccessful: IAsyncTaskOnSuccessfulFunction<GValue, GNewValue>,
-    onErrored: IAsyncTaskOnErroredFunction<GNewValue>,
+    onSuccessful?: IAsyncTaskOnSuccessfulFunction<GValue, GNewValue> | undefined | null,
+    onErrored?: IAsyncTaskOnErroredFunction<GNewValue> | undefined | null,
   ): AsyncTask<GNewValue> {
-    return this.settled<GNewValue>((
-      state: IAsyncTaskSettledState<GValue>,
-      abortable: Abortable,
-    ): IAsyncTaskInput<GNewValue> => {
-      if (state.state === 'success') {
-        return onSuccessful(state.value, abortable);
-      } else {
-        return onErrored(state.error, abortable);
-      }
-    });
-  }
-
-  successful<GNewValue extends IAsyncTaskConstraint<GNewValue>>(
-    onSuccessful: IAsyncTaskOnSuccessfulFunction<GValue, GNewValue>,
-  ): AsyncTask<GNewValue> {
-    return this.then(
-      onSuccessful,
-      (error: unknown): never => {
-        throw error;
-      },
-    );
-  }
-
-  errored<GNewValue extends IAsyncTaskConstraint<GNewValue>>(
-    onErrored: IAsyncTaskOnErroredFunction<GNewValue>,
-  ): AsyncTask<GValue | GNewValue> {
-    return this.then(
-      (value: GValue): GValue => {
-        return value;
-      },
-      onErrored,
-    );
-  }
-
-  finally(
-    onFinally: IAsyncTaskOnFinallyFunction<GValue>,
-  ): AsyncTask<GValue> {
-    return this.then(
-      (value: GValue, abortable: Abortable): AsyncTask<GValue> => {
-        return AsyncTask.fromFactory(onFinally, abortable)
-          .successful((): GValue => {
-            return value;
-          });
-      },
-      (error: unknown, abortable: Abortable): AsyncTask<never> => {
-        return AsyncTask.fromFactory(onFinally, abortable)
-          .successful((): never => {
-            throw error;
-          });
-      },
-    );
-  }
-
-  toPromise(): Promise<GValue> {
-    return new Promise<GValue>((
-      resolve: (value: GValue) => void,
-      reject: (reason?: any) => void,
-    ): void => {
-      this.#resolvedStateEventEmitter.subscribe((
-        state: IAsyncTaskResolvedState<GValue>,
-      ): void => {
+    return this.#settled<GNewValue>(
+      (state: IAsyncTaskSettledState<GValue>, abortable: Abortable): IAsyncTaskInput<GNewValue> => {
         if (state.state === 'success') {
-          resolve(state.value);
-        } else if (state.state === 'error') {
-          reject(state.error);
-        } else if (state.state === 'abort') {
-          reject(new AbortError(`Aborted`, { cause: state.reason }));
+          if (typeof onSuccessful === 'function') {
+            return onSuccessful(state.value, abortable);
+          } else {
+            return state.value;
+          }
+        } else {
+          if (typeof onErrored === 'function') {
+            return onErrored(state.reason, abortable);
+          } else {
+            throw state.reason;
+          }
         }
-      });
-    });
+      },
+    );
+  }
+
+  /**
+   * When the AsyncTask errors, calls `onErrored`.
+   */
+  catch<GNewValue extends IAsyncTaskConstraint<GNewValue>>(
+    onErrored?: IAsyncTaskOnErroredFunction<GNewValue> | undefined | null,
+  ): AsyncTask<GValue | GNewValue> {
+    return this.then(null, onErrored);
+  }
+
+  /**
+   * When the AsyncTask is resolved, `onFinally` is called.
+   */
+  finally(onFinally?: IAsyncTaskOnFinallyFunction<GValue> | undefined | null): AsyncTask<GValue> {
+    return this.#settled<GValue>(
+      (state: IAsyncTaskSettledState<GValue>, abortable: Abortable): IAsyncTaskInput<GValue> => {
+        if (typeof onFinally === 'function') {
+          return AsyncTask.try(onFinally, abortable).then((): GValue | never => {
+            if (state.state === 'success') {
+              return state.value;
+            } else {
+              throw state.reason;
+            }
+          });
+        } else {
+          if (state.state === 'success') {
+            return state.value;
+          } else {
+            throw state.reason;
+          }
+        }
+      },
+    );
+  }
+
+  /* PROMISE */
+
+  /**
+   * Converts this AsyncTask to a Promise.
+   *
+   * If the AsyncTask is aborted, then the promise is rejected.
+   */
+  toPromise(): Promise<GValue> {
+    return new Promise<GValue>(
+      (resolve: (value: GValue) => void, reject: (reason: any) => void): void => {
+        this.#resolvedStateEventEmitter.subscribe(
+          (state: IAsyncTaskResolvedState<GValue>): void => {
+            if (state.state === 'success') {
+              resolve(state.value);
+            } else if (state.state === 'error') {
+              reject(state.reason);
+            } else if (state.state === 'abort') {
+              reject(new AbortError(`Aborted`, { cause: state.reason }));
+            }
+          },
+        );
+      },
+    );
+  }
+
+  /* MISC */
+
+  /**
+   * Creates a listener calling `whenResolved` when this `asyncTask` reaches a *resolved* state.
+   */
+  whenResolved(
+    whenResolved: IAsyncTaskWhenResolvedFunction<GValue>,
+  ): IAsyncTaskWhenResolvedUnsubscribe {
+    return this.#resolvedStateEventEmitter.subscribe(whenResolved);
   }
 }
